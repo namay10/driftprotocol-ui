@@ -27,7 +27,10 @@ export const SubaccountDetails = () => {
   // console.log("orders", user?.getOrderByUserOrderId(currentSubaccountId));
   // console.log("openorders", driftClient?.getPerpMarketAccount(0));
   const selectedSubUser = driftClient?.getUser(currentSubaccountId);
-  const orders = selectedSubUser?.getUserAccount().orders ?? [];
+  const orders =
+    selectedSubUser
+      ?.getUserAccount()
+      .orders.filter((order) => order.orderId !== 0) ?? [];
   console.log("orders", orders);
 
   const handleRefresh = async () => {
@@ -121,8 +124,7 @@ export const SubaccountDetails = () => {
                 <th className="px-3 py-2 text-left">Market</th>
                 <th className="px-3 py-2 text-left">Direction</th>
                 <th className="px-3 py-2 text-left">Type</th>
-                <th className="px-3 py-2 text-left">Filled / Ordered</th>
-                <th className="px-3 py-2 text-left">Avg Fill Price</th>
+                <th className="px-3 py-2 text-left"> Ordered</th>
                 <th className="px-3 py-2 text-left">Limit</th>
                 <th className="px-3 py-2 text-left">Status</th>
               </tr>
@@ -137,27 +139,36 @@ export const SubaccountDetails = () => {
               ) : (
                 orders.map((order: any, idx: number) => {
                   // Helper mappings
-                  const orderTypeMap: { [key: number]: string } = {
-                    0: "Limit",
-                    1: "Market",
-                    2: "Trigger",
-                    3: "Oracle",
+                  const orderTypeMap: { [key: string]: string } = {
+                    limit: "Limit",
+                    market: "Market",
+                    trigger: "Trigger",
+                    oracle: "Oracle",
                   };
-                  const directionMap: { [key: number]: string } = {
-                    0: "Long",
-                    1: "Short",
+                  const directionMap: { [key: string]: string } = {
+                    long: "Long",
+                    short: "Short",
                   };
-                  const statusMap: { [key: number]: string } = {
-                    0: "Open",
-                    1: "Filled",
-                    2: "Cancelled",
+                  const statusMap: { [key: string]: string } = {
+                    open: "Open",
+                    filled: "Filled",
+                    canceled: "Cancelled",
                   };
-                  // Use numeric values directly
-                  const orderType =
-                    orderTypeMap[Number(order.orderType)] || "Unknown";
-                  const direction =
-                    directionMap[Number(order.direction)] || "Unknown";
-                  const status = statusMap[Number(order.status)] || "Unknown";
+
+                  // Get the key of the object (e.g., "limit" for orderType)
+                  const getKey = (obj: any) =>
+                    obj && typeof obj === "object"
+                      ? Object.keys(obj)[0]
+                      : undefined;
+
+                  const orderTypeKey = getKey(order.orderType);
+                  const directionKey = getKey(order.direction);
+                  const statusKey = getKey(order.status);
+
+                  const orderType = orderTypeMap[orderTypeKey!!] || "Unknown";
+                  const direction = directionMap[directionKey!!] || "Unknown";
+                  const status = statusMap[statusKey!!] || "Unknown";
+
                   // BN formatting helpers
                   const formatBN = (
                     bn: any,
@@ -168,11 +179,9 @@ export const SubaccountDetails = () => {
                     const decimals = marketIndex === 1 ? 9 : 6;
                     return (bn.toNumber() / 10 ** decimals).toFixed(precision);
                   };
+
                   // Filled/Ordered
-                  const filled = formatBN(
-                    order.baseAssetAmountFilled,
-                    order.marketIndex
-                  );
+
                   const ordered = formatBN(
                     order.baseAssetAmount,
                     order.marketIndex
@@ -180,7 +189,7 @@ export const SubaccountDetails = () => {
                   // Limit price
                   const limit = formatBN(order.price, order.marketIndex, 3);
                   // Avg Fill Price (not available in order object, so '-')
-                  const avgFillPrice = "-";
+
                   return (
                     <tr
                       key={idx}
@@ -189,10 +198,8 @@ export const SubaccountDetails = () => {
                       <td className="px-3 py-2">{orderType}</td>
                       <td className="px-3 py-2">{direction}</td>
                       <td className="px-3 py-2">{orderType}</td>
-                      <td className="px-3 py-2">
-                        {filled} / {ordered}
-                      </td>
-                      <td className="px-3 py-2">{avgFillPrice}</td>
+                      <td className="px-3 py-2">{ordered}</td>
+
                       <td className="px-3 py-2">{limit}</td>
                       <td className="px-3 py-2">{status}</td>
                     </tr>

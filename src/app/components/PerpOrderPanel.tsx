@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { PositionDirection, OrderType } from "@drift-labs/sdk";
+import { PositionDirection } from "@drift-labs/sdk";
 import { useDriftStore } from "@/app/store/userdriftstore";
 import toast from "react-hot-toast";
 
@@ -8,6 +8,13 @@ import toast from "react-hot-toast";
  * PerpOrderPanel – UI form to create Drift perp orders (limit, auction‑market, oracle‑offset)
  * Designed for quick drop‑in into any page.tsx. Tailwind, minimal dependencies.
  */
+
+// Define order type constants
+const ORDER_TYPE = {
+  MARKET: 0,
+  LIMIT: 1,
+  ORACLE_OFFSET: 2,
+};
 
 export default function PerpOrderPanel() {
   /** ─────────────── Store hooks ─────────────── */
@@ -20,7 +27,7 @@ export default function PerpOrderPanel() {
   } = useDriftStore();
 
   /** ─────────────── Local state ─────────────── */
-  const [orderType, setOrderType] = useState<OrderType>(OrderType.LIMIT);
+  const [orderType, setOrderType] = useState<number>(ORDER_TYPE.MARKET);
   const [direction, setDirection] = useState<PositionDirection>(
     PositionDirection.LONG
   );
@@ -38,9 +45,9 @@ export default function PerpOrderPanel() {
 
   // When switching to LIMIT, pre‑fill with oraclePrice for convenience
   useEffect(() => {
-    if (orderType === OrderType.LIMIT) {
+    if (orderType === ORDER_TYPE.LIMIT) {
       setLimitPrice(oraclePrice.toString());
-    } else if (orderType === OrderType.MARKET) {
+    } else if (orderType === ORDER_TYPE.MARKET) {
       // sensible defaults: ±0.1 range around oracle
       setAuctionStart((oraclePrice * 0.995).toFixed(2));
       setAuctionEnd((oraclePrice * 1.005).toFixed(2));
@@ -59,10 +66,18 @@ export default function PerpOrderPanel() {
     }
 
     try {
+      console.log("orderType", orderType, typeof orderType);
+
       switch (orderType) {
-        case OrderType.LIMIT: {
+        case ORDER_TYPE.LIMIT: {
           const priceNum = Number(limitPrice);
           if (!priceNum) throw new Error("Invalid limit price");
+          console.log("Placing limit order with:", {
+            marketIndex: currentMarketIndex,
+            baseSize,
+            direction,
+            limitPrice: priceNum,
+          });
           await placeLimitOrder({
             marketIndex: currentMarketIndex,
             baseSize,
@@ -71,12 +86,20 @@ export default function PerpOrderPanel() {
           });
           break;
         }
-        case OrderType.MARKET: {
+        case ORDER_TYPE.MARKET: {
           const start = Number(auctionStart);
           const end = Number(auctionEnd);
           const final = Number(auctionFinal);
           if (!start || !end || !final)
             throw new Error("Fill all auction price fields");
+          console.log("Placing market order with:", {
+            marketIndex: currentMarketIndex,
+            baseSize,
+            direction,
+            startPrice: start,
+            endPrice: end,
+            finalPrice: final,
+          });
           await placeAuctionMarketOrder({
             marketIndex: currentMarketIndex,
             baseSize,
@@ -87,22 +110,32 @@ export default function PerpOrderPanel() {
           });
           break;
         }
-        default: {
-          const offNum = Number(priceOffset);
-          if (!offNum) throw new Error("Invalid offset");
+        case ORDER_TYPE.ORACLE_OFFSET: {
+          const offset = Number(priceOffset);
+          if (!offset) throw new Error("Invalid price offset");
+          console.log("Placing oracle offset order with:", {
+            marketIndex: currentMarketIndex,
+            baseSize,
+            direction,
+            priceOffset: offset,
+          });
           await placeOracleOffsetOrder({
             marketIndex: currentMarketIndex,
             baseSize,
             direction,
-            priceOffset: offNum,
+            priceOffset: offset,
           });
+          break;
         }
+        default:
+          throw new Error(`Unsupported order type: ${orderType}`);
       }
 
       toast.success("✅ Order placed");
       // reset size only, keep price handy for next order
       setSize("");
     } catch (err: any) {
+      console.error("Order error:", err);
       toast.error(err.message || "Order failed");
     }
   };
@@ -125,13 +158,17 @@ export default function PerpOrderPanel() {
       <div>
         <label className={labelCls}>Order Type</label>
         <select
-          value={orderType.toString()}
-          onChange={(e) => setOrderType(Number(e.target.value) as OrderType)}
+          value={orderType}
+          onChange={(e) => {
+            const value = Number(e.target.value);
+            console.log("Selected order type:", value, typeof value);
+            setOrderType(value);
+          }}
           className={inputCls}
         >
-          <option value={OrderType.LIMIT.toString()}>Limit</option>
-          <option value={OrderType.MARKET.toString()}>Auction‑Market</option>
-          <option value="2">Oracle Offset</option>
+          <option value={ORDER_TYPE.LIMIT}>Limit</option>
+          <option value={ORDER_TYPE.MARKET}>Auction‑Market</option>
+          <option value={ORDER_TYPE.ORACLE_OFFSET}>Oracle Offset</option>
         </select>
       </div>
 
@@ -166,7 +203,7 @@ export default function PerpOrderPanel() {
       </div>
 
       {/* Price inputs conditional */}
-      {orderType === OrderType.LIMIT && (
+      {orderType === ORDER_TYPE.LIMIT && (
         <div>
           <label className={labelCls}>Limit Price</label>
           <input
@@ -178,7 +215,7 @@ export default function PerpOrderPanel() {
         </div>
       )}
 
-      {orderType === OrderType.MARKET && (
+      {orderType === ORDER_TYPE.MARKET && (
         <div className="grid grid-cols-3 gap-4">
           <div>
             <label className={labelCls}>Start</label>
@@ -210,7 +247,7 @@ export default function PerpOrderPanel() {
         </div>
       )}
 
-      {orderType === 2 && (
+      {orderType === ORDER_TYPE.ORACLE_OFFSET && (
         <div>
           <label className={labelCls}>Offset from Oracle (±)</label>
           <input

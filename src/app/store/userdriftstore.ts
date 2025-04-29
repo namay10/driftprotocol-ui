@@ -134,9 +134,10 @@ export const useDriftStore = create<DriftState>((set, get) => ({
       console.log("acct", acct);
       const oracleData = driftClient.getOracleDataForPerpMarket(marketIndex);
       console.log("oracleData", oracleData);
-      const humanPrice = Number(
-        driftClient.convertToPricePrecision(oracleData.price)
-      );
+      // const humanPrice = Number(
+      //   driftClient.convertToPricePrecision(oracleData.price)
+      // );
+      const humanPrice = Number(oracleData.price.toString()) / 1e8; // or 1e8, check your market's precision!
       console.log("humanPrice", humanPrice);
 
       if (acct) {
@@ -174,6 +175,7 @@ export const useDriftStore = create<DriftState>((set, get) => ({
     if (!driftClient) throw new Error("DriftClient not initialised");
 
     await placeAuctionMarketPerpOrder({ ...args, driftClient });
+    console.log("placed auction market order");
     await get().refreshUser();
   },
 

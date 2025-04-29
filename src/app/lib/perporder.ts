@@ -47,7 +47,9 @@ export const placeAuctionMarketPerpOrder = async ({
     maxTs: new BN(now + secondsToLive),
   };
 
-  return driftClient.placePerpOrder(orderParams);
+  const order = await driftClient.placePerpOrder(orderParams);
+  console.log("order", order);
+  return order;
 };
 
 export interface LimitOrderArgs extends BasePerpOrderArgs {

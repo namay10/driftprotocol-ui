@@ -4,16 +4,16 @@ import { PositionDirection } from "@drift-labs/sdk";
 import { useDriftStore } from "@/app/store/userdriftstore";
 import toast from "react-hot-toast";
 
-/**
- * PerpOrderPanel – UI form to create Drift perp orders (limit, auction‑market, oracle‑offset)
- * Designed for quick drop‑in into any page.tsx. Tailwind, minimal dependencies.
- */
-
-// Define order type constants
 const ORDER_TYPE = {
   MARKET: 0,
   LIMIT: 1,
   ORACLE_OFFSET: 2,
+};
+
+const ORDER_TYPE_LABELS = {
+  [ORDER_TYPE.MARKET]: { name: "Auction‑Market", icon: "🏛️" },
+  [ORDER_TYPE.LIMIT]: { name: "Limit", icon: "📊" },
+  [ORDER_TYPE.ORACLE_OFFSET]: { name: "Oracle Offset", icon: "🎯" },
 };
 
 export default function PerpOrderPanel() {
@@ -39,6 +39,7 @@ export default function PerpOrderPanel() {
   const [auctionEnd, setAuctionEnd] = useState<string>("");
   const [auctionFinal, setAuctionFinal] = useState<string>("");
   const [priceOffset, setPriceOffset] = useState<string>(""); // oracle offset
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   /** ─────────────── Derived helpers ─────────────── */
   const oraclePrice = oraclePrices[currentMarketIndex] ?? 0;
@@ -58,10 +59,12 @@ export default function PerpOrderPanel() {
   /** ─────────────── Submit handler ─────────────── */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     const baseSize = Number(size);
     if (!baseSize || baseSize <= 0) {
       toast.error("Enter a valid size");
+      setIsSubmitting(false);
       return;
     }
 
@@ -137,140 +140,216 @@ export default function PerpOrderPanel() {
     } catch (err: any) {
       console.error("Order error:", err);
       toast.error(err.message || "Order failed");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   /** ─────────────── UI elements ─────────────── */
-  const labelCls = "block text-sm text-gray-400 mb-1";
-  const inputCls =
-    "w-full bg-gray-700 text-white p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500";
+  const inputClassName =
+    "w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all";
+  const labelClassName = "block text-sm text-gray-400 mb-2";
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="bg-gray-800 rounded-xl p-6 space-y-6 shadow-lg max-w-md mx-auto"
-    >
-      <h3 className="text-lg font-semibold text-center mb-2">
-        Place Perp Order
-      </h3>
-
-      {/* Order type */}
-      <div>
-        <label className={labelCls}>Order Type</label>
-        <select
-          value={orderType}
-          onChange={(e) => {
-            const value = Number(e.target.value);
-            console.log("Selected order type:", value, typeof value);
-            setOrderType(value);
-          }}
-          className={inputCls}
-        >
-          <option value={ORDER_TYPE.LIMIT}>Limit</option>
-          <option value={ORDER_TYPE.MARKET}>Auction‑Market</option>
-          <option value={ORDER_TYPE.ORACLE_OFFSET}>Oracle Offset</option>
-        </select>
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-semibold text-white">Place Perp Order</h3>
+        <div className="flex items-center space-x-2">
+          <span className="text-xs text-gray-400">Oracle:</span>
+          <span className="text-sm font-mono bg-gray-700 px-2 py-1 rounded">
+            ${oraclePrice.toFixed(2)}
+          </span>
+        </div>
       </div>
 
-      {/* Direction */}
-      <div className="grid grid-cols-2 gap-4">
-        {[PositionDirection.LONG, PositionDirection.SHORT].map((dir) => (
-          <button
-            type="button"
-            key={dir === PositionDirection.LONG ? "long" : "short"}
-            onClick={() => setDirection(dir)}
-            className={`py-2 rounded text-sm font-medium border transition-colors ${
-              direction === dir
-                ? "bg-blue-600 border-blue-700"
-                : "bg-gray-700 border-gray-600 hover:bg-gray-600"
-            }`}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Order Type */}
+        <div className="space-y-2">
+          <label className={labelClassName}>Order Type</label>
+          <select
+            value={orderType}
+            onChange={(e) => {
+              const value = Number(e.target.value);
+              console.log("Selected order type:", value, typeof value);
+              setOrderType(value);
+            }}
+            className={inputClassName}
           >
-            {dir === PositionDirection.LONG ? "Long" : "Short"}
-          </button>
-        ))}
-      </div>
+            {Object.entries(ORDER_TYPE).map(([key, value]) => (
+              <option key={key} value={value}>
+                {ORDER_TYPE_LABELS[value].icon} {ORDER_TYPE_LABELS[value].name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      {/* Size */}
-      <div>
-        <label className={labelCls}>Size (base units)</label>
-        <input
-          type="number"
-          value={size}
-          onChange={(e) => setSize(e.target.value)}
-          placeholder="100"
-          className={inputCls}
-        />
-      </div>
+        {/* Direction */}
+        <div className="space-y-2">
+          <label className={labelClassName}>Direction</label>
+          <div className="grid grid-cols-2 gap-2 p-1 bg-gray-700/50 rounded-lg">
+            {[PositionDirection.LONG, PositionDirection.SHORT].map((dir) => (
+              <button
+                type="button"
+                key={dir === PositionDirection.LONG ? "long" : "short"}
+                onClick={() => setDirection(dir)}
+                className={`py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
+                  direction === dir
+                    ? dir === PositionDirection.LONG
+                      ? "bg-green-500 text-white shadow-lg"
+                      : "bg-red-500 text-white shadow-lg"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                {dir === PositionDirection.LONG ? "Long 📈" : "Short 📉"}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      {/* Price inputs conditional */}
-      {orderType === ORDER_TYPE.LIMIT && (
-        <div>
-          <label className={labelCls}>Limit Price</label>
+        {/* Size */}
+        <div className="space-y-2">
+          <label className={labelClassName}>Size (base units)</label>
           <input
             type="number"
-            value={limitPrice}
-            onChange={(e) => setLimitPrice(e.target.value)}
-            className={inputCls}
+            value={size}
+            onChange={(e) => setSize(e.target.value)}
+            placeholder="100"
+            className={inputClassName}
           />
         </div>
-      )}
 
-      {orderType === ORDER_TYPE.MARKET && (
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className={labelCls}>Start</label>
-            <input
-              type="number"
-              value={auctionStart}
-              onChange={(e) => setAuctionStart(e.target.value)}
-              className={inputCls}
-            />
+        {/* Price Inputs */}
+        {orderType === ORDER_TYPE.LIMIT && (
+          <div className="space-y-2">
+            <label className={labelClassName}>Limit Price</label>
+            <div className="relative">
+              <span className="absolute left-3 top-2.5 text-gray-400">$</span>
+              <input
+                type="number"
+                value={limitPrice}
+                onChange={(e) => setLimitPrice(e.target.value)}
+                className={`${inputClassName} pl-8`}
+              />
+            </div>
           </div>
-          <div>
-            <label className={labelCls}>End</label>
-            <input
-              type="number"
-              value={auctionEnd}
-              onChange={(e) => setAuctionEnd(e.target.value)}
-              className={inputCls}
-            />
-          </div>
-          <div>
-            <label className={labelCls}>Final</label>
-            <input
-              type="number"
-              value={auctionFinal}
-              onChange={(e) => setAuctionFinal(e.target.value)}
-              className={inputCls}
-            />
-          </div>
-        </div>
-      )}
+        )}
 
-      {orderType === ORDER_TYPE.ORACLE_OFFSET && (
-        <div>
-          <label className={labelCls}>Offset from Oracle (±)</label>
-          <input
-            type="number"
-            value={priceOffset}
-            onChange={(e) => setPriceOffset(e.target.value)}
-            placeholder="0.05"
-            className={inputCls}
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Current oracle price:{" "}
-            <span className="font-mono">{oraclePrice.toFixed(2)}</span>
-          </p>
-        </div>
-      )}
+        {orderType === ORDER_TYPE.MARKET && (
+          <div className="space-y-4">
+            <label className={labelClassName}>Auction Prices</label>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">
+                  Start
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-gray-400">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    value={auctionStart}
+                    onChange={(e) => setAuctionStart(e.target.value)}
+                    className={`${inputClassName} pl-8`}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">End</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-gray-400">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    value={auctionEnd}
+                    onChange={(e) => setAuctionEnd(e.target.value)}
+                    className={`${inputClassName} pl-8`}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">
+                  Final
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-gray-400">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    value={auctionFinal}
+                    onChange={(e) => setAuctionFinal(e.target.value)}
+                    className={`${inputClassName} pl-8`}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
-      {/* Submit */}
-      <button
-        type="submit"
-        className="w-full bg-green-600 hover:bg-green-700 py-2 rounded-lg font-semibold"
-      >
-        Submit Order
-      </button>
-    </form>
+        {orderType === ORDER_TYPE.ORACLE_OFFSET && (
+          <div className="space-y-2">
+            <label className={labelClassName}>Offset from Oracle (±)</label>
+            <div className="relative">
+              <span className="absolute left-3 top-2.5 text-gray-400">$</span>
+              <input
+                type="number"
+                value={priceOffset}
+                onChange={(e) => setPriceOffset(e.target.value)}
+                placeholder="0.05"
+                className={`${inputClassName} pl-8`}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Effective price: $
+              {(oraclePrice + Number(priceOffset || 0)).toFixed(2)}
+            </p>
+          </div>
+        )}
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className={`w-full py-3 px-4 rounded-lg font-medium text-white transition-all duration-200 
+            ${
+              direction === PositionDirection.LONG
+                ? "bg-green-500 hover:bg-green-600"
+                : "bg-red-500 hover:bg-red-600"
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+        >
+          {isSubmitting ? (
+            <span className="flex items-center justify-center">
+              <svg
+                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              Processing...
+            </span>
+          ) : (
+            `Place ${
+              direction === PositionDirection.LONG ? "Long" : "Short"
+            } Order`
+          )}
+        </button>
+      </form>
+    </div>
   );
 }

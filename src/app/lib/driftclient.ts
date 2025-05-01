@@ -52,12 +52,15 @@ export const getUserSubaccount = async (
 export const depositToUser = async (
   driftClient: DriftClient,
   amount: number,
-  marketIndex: number
+  marketIndex: number,
+  subAccountId: number
 ) => {
   const finalAmount = driftClient.convertToSpotPrecision(marketIndex, amount);
   const ata = await driftClient.getAssociatedTokenAccount(marketIndex);
-  await driftClient.deposit(finalAmount, marketIndex, ata);
-  console.log(`✅ Deposited ${amount} to market ${marketIndex}`);
+  await driftClient.deposit(finalAmount, marketIndex, ata, subAccountId);
+  console.log(
+    `✅ Deposited ${amount} to market ${marketIndex} for subaccount ${subAccountId}`
+  );
 };
 
 // Withdraw
@@ -69,5 +72,7 @@ export const withdrawFromUser = async (
   const finalAmount = driftClient.convertToSpotPrecision(marketIndex, amount);
   const ata = await driftClient.getAssociatedTokenAccount(marketIndex);
   await driftClient.withdraw(finalAmount, marketIndex, ata);
-  console.log(`✅ Withdrew ${amount} from market ${marketIndex}`);
+  console.log(
+    `✅ Withdrew ${amount} from market ${marketIndex} for subaccount `
+  );
 };

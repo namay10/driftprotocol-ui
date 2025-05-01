@@ -130,14 +130,14 @@ export const useDriftStore = create<DriftState>((set, get) => ({
     if (!driftClient) return;
 
     try {
-      const acct = driftClient.getPerpMarketAccount(marketIndex);
+      const acct = driftClient.getPerpMarketAccount(0);
       console.log("acct", acct);
-      const oracleData = driftClient.getOracleDataForPerpMarket(marketIndex);
+      const oracleData = driftClient.getOracleDataForPerpMarket(0);
       console.log("oracleData", oracleData);
       // const humanPrice = Number(
       //   driftClient.convertToPricePrecision(oracleData.price)
       // );
-      const humanPrice = Number(oracleData.price.toString()) / 1e8; // or 1e8, check your market's precision!
+      const humanPrice = Number(oracleData.price.toString()) / 1e6; // or 1e8, check your market's precision!
       console.log("humanPrice", humanPrice);
 
       if (acct) {
@@ -154,10 +154,15 @@ export const useDriftStore = create<DriftState>((set, get) => ({
 
   // ───────────────────── SPOT TOOLS
   deposit: async (amount) => {
-    const { driftClient, currentMarketIndex } = get();
+    const { driftClient, currentMarketIndex, currentSubaccountId } = get();
     if (!driftClient) throw new Error("DriftClient not initialised");
 
-    await depositToUser(driftClient, amount, currentMarketIndex);
+    await depositToUser(
+      driftClient,
+      amount,
+      currentMarketIndex,
+      currentSubaccountId
+    );
     await get().refreshUser();
   },
 

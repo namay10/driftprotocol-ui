@@ -1,6 +1,6 @@
 import { Connection } from "@solana/web3.js";
-import { DriftClient, Wallet, User } from "@drift-labs/sdk";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { DriftClient, User } from "@drift-labs/sdk";
+
 import { DriftWalletAdapterWrapper } from "../lib/driftWalletWrapper";
 import { WalletContextState } from "@solana/wallet-adapter-react";
 

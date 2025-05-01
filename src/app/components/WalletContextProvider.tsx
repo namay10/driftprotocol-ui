@@ -9,7 +9,7 @@ import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 
 import { useDriftStore } from "@/app/store/userdriftstore";
 
-require("@solana/wallet-adapter-react-ui/styles.css");
+import "@solana/wallet-adapter-react-ui/styles.css";
 
 const RPC_ENDPOINT =
   "https://devnet.helius-rpc.com/?api-key=1d4eba50-6775-455d-84a7-72675bb4995f";
@@ -51,7 +51,14 @@ function DriftInitializer({ children }: { children: ReactNode }) {
     };
 
     setup();
-  }, [connected, publicKey]);
+  }, [
+    connected,
+    publicKey,
+    signTransaction,
+    initClient,
+    refreshUser,
+    walletAdapter,
+  ]);
 
   return <>{children}</>;
 }

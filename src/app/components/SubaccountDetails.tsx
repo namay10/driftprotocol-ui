@@ -1,8 +1,7 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useDriftStore } from "@/app/store/userdriftstore";
 import {
-  BN,
   getTokenAmount,
   SpotBalanceType,
   LAMPORTS_PRECISION,
@@ -11,13 +10,8 @@ import {
 } from "@drift-labs/sdk";
 
 export default function SubaccountDetails() {
-  const {
-    user,
-    driftClient,
-    currentSubaccountId,
-    setSubaccountId,
-    refreshUser,
-  } = useDriftStore();
+  const { driftClient, currentSubaccountId, setSubaccountId, refreshUser } =
+    useDriftStore();
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -51,9 +45,14 @@ export default function SubaccountDetails() {
   const solBalance = useMemo(() => {
     if (!selectedSubUser || !driftClient) return 0;
     const pos = selectedSubUser.getSpotPosition(1);
+    if (!pos) return 0;
+
+    const spotMarket = driftClient.getSpotMarketAccount(1);
+    if (!spotMarket) return 0;
+
     const lamports = getTokenAmount(
-      pos!.scaledBalance,
-      driftClient?.getSpotMarketAccount(1)!,
+      pos.scaledBalance,
+      spotMarket,
       SpotBalanceType.DEPOSIT
     );
     return lamports.toNumber() / LAMPORTS_PRECISION.toNumber();
@@ -74,7 +73,19 @@ export default function SubaccountDetails() {
   };
 
   if (subaccounts.length === 0) {
-    return <div className="p-4 text-center">No subaccount loaded</div>;
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="relative w-10 h-10">
+          <div className="absolute top-0 left-0 w-full h-full">
+            <div className="w-10 h-10 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+          </div>
+          <div className="absolute top-0 left-0 w-full h-full rotate-45">
+            <div className="w-10 h-10 border-4 border-transparent border-t-blue-400/40 rounded-full"></div>
+          </div>
+        </div>
+        <span className="ml-3 text-gray-400">Loading subaccounts...</span>
+      </div>
+    );
   }
 
   return (

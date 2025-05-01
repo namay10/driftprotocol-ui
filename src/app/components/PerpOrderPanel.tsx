@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { PositionDirection } from "@drift-labs/sdk";
 import { useDriftStore } from "@/app/store/userdriftstore";
 import toast from "react-hot-toast";

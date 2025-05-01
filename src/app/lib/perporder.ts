@@ -1,10 +1,4 @@
-import {
-  DriftClient,
-  OrderType,
-  PositionDirection,
-  OrderParams,
-  BN,
-} from "@drift-labs/sdk";
+import { DriftClient, OrderType, PositionDirection, BN } from "@drift-labs/sdk";
 
 interface BasePerpOrderArgs {
   driftClient: DriftClient;

@@ -2,12 +2,10 @@
 import { useState } from "react";
 import { useDriftStore } from "@/app/store/userdriftstore";
 import {
-  BN,
   getTokenAmount,
   SpotBalanceType,
   LAMPORTS_PRECISION,
   QUOTE_PRECISION,
-  PRICE_PRECISION,
 } from "@drift-labs/sdk";
 import { PublicKey, Connection, LAMPORTS_PER_SOL } from "@solana/web3.js";
 
@@ -51,33 +49,37 @@ export default function InputWalletData() {
           const user = await driftClient.getUser(0, publicKey);
           if (user) {
             const solPosition = user.getSpotPosition(1);
-            const driftSolBalance = solPosition
-              ? getTokenAmount(
+            const spotMarket = driftClient.getSpotMarketAccount(1);
+
+            if (solPosition && spotMarket) {
+              const driftSolBalance =
+                getTokenAmount(
                   solPosition.scaledBalance,
-                  driftClient.getSpotMarketAccount(1)!,
+                  spotMarket,
                   SpotBalanceType.DEPOSIT
-                ).toNumber() / LAMPORTS_PRECISION.toNumber()
-              : 0;
+                ).toNumber() / LAMPORTS_PRECISION.toNumber();
 
-            const collateralUsd =
-              user.getTotalCollateral().toNumber() / QUOTE_PRECISION.toNumber();
-            const health = user.getHealth().toFixed(2);
-            const totalDeposits = user
-              .getUserAccount()
-              .totalDeposits.toNumber();
-            const totalWithdraws = user
-              .getUserAccount()
-              .totalWithdraws.toNumber();
+              const collateralUsd =
+                user.getTotalCollateral().toNumber() /
+                QUOTE_PRECISION.toNumber();
+              const health = user.getHealth().toFixed(2);
+              const totalDeposits = user
+                .getUserAccount()
+                .totalDeposits.toNumber();
+              const totalWithdraws = user
+                .getUserAccount()
+                .totalWithdraws.toNumber();
 
-            // Update data with Drift information
-            Object.assign(data, {
-              hasDriftData: true,
-              driftSolBalance,
-              collateralUsd,
-              health,
-              totalDeposits,
-              totalWithdraws,
-            });
+              // Update data with Drift information
+              Object.assign(data, {
+                hasDriftData: true,
+                driftSolBalance,
+                collateralUsd,
+                health,
+                totalDeposits,
+                totalWithdraws,
+              });
+            }
           }
         } catch (driftError) {
           console.warn("Failed to fetch Drift data:", driftError);

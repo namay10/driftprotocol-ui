@@ -14,13 +14,7 @@
  */
 
 import { create } from "zustand";
-import {
-  DriftClient,
-  User,
-  PositionDirection,
-  OrderStatus,
-  PerpMarketAccount,
-} from "@drift-labs/sdk";
+import { DriftClient, User, PerpMarketAccount } from "@drift-labs/sdk";
 import {
   initializeDriftClient,
   getUserSubaccount,
@@ -36,8 +30,6 @@ import {
   OracleOffsetOrderArgs,
 } from "@/app/lib/perporder";
 import { WalletContextState } from "@solana/wallet-adapter-react";
-import { BN } from "@project-serum/anchor";
-import { DriftClientAccountEvents } from "@drift-labs/sdk";
 
 /** ──────────────────────────── STATE TYPES ───────────────────────────── */
 interface DriftState {

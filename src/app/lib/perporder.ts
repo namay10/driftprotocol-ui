@@ -7,7 +7,6 @@ interface BasePerpOrderArgs {
   direction: PositionDirection; // LONG | SHORT
 }
 
-/** 1. Auction Market Order ---------------------------------------- */
 export interface AuctionMarketArgs extends BasePerpOrderArgs {
   startPrice: number;
   endPrice: number;

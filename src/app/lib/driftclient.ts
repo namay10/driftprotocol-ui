@@ -1,11 +1,9 @@
 import { Connection } from "@solana/web3.js";
 import { DriftClient, User } from "@drift-labs/sdk";
-
 import { DriftWalletAdapterWrapper } from "../lib/driftWalletWrapper";
 import { WalletContextState } from "@solana/wallet-adapter-react";
 
-const RPC_ENDPOINT =
-  "https://devnet.helius-rpc.com/?api-key=1d4eba50-6775-455d-84a7-72675bb4995f";
+const RPC_ENDPOINT = `https://devnet.helius-rpc.com/?api-key=${process.env.NEXT_PUBLIC_HELIUS_API_KEY}`;
 
 // Initialize Drift Client
 export const initializeDriftClient = async (
@@ -17,7 +15,7 @@ export const initializeDriftClient = async (
   const driftClient = new DriftClient({
     connection,
     wallet: wrappedWallet,
-    env: "devnet", // or 'devnet'
+    env: "devnet",
   });
 
   await driftClient.subscribe();

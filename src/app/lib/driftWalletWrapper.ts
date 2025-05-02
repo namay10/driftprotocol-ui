@@ -1,4 +1,3 @@
-// lib/DriftWalletWrapper.ts
 import { IWallet } from "@drift-labs/sdk";
 import { WalletContextState } from "@solana/wallet-adapter-react";
 import { Transaction } from "@solana/web3.js";

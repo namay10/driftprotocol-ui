@@ -1,18 +1,3 @@
-// app/store/userdriftstore.ts
-
-/**
- * Zustand store that holds the active Drift SDK connection, the selected
- * sub‑account, live market data and convenience actions for perp orders.
- *
- * Responsibilities
- * ──────────────────────────────────────────────────────────
- * • Initialise / reconnect DriftClient once a wallet is available
- * • Keep the selected `User` (sub‑account) in sync
- * • Expose helpers for deposits/withdrawals (already there) + NEW perp orders
- * • Fetch & subscribe live oracle price + perp‑market metadata so the UI never
- *   has to ask the user to type a price again ➜ auto‑populate instead.
- */
-
 import { create } from "zustand";
 import { DriftClient, User, PerpMarketAccount } from "@drift-labs/sdk";
 import {
@@ -30,8 +15,8 @@ import {
   OracleOffsetOrderArgs,
 } from "@/app/lib/perporder";
 import { WalletContextState } from "@solana/wallet-adapter-react";
+import toast from "react-hot-toast";
 
-/** ──────────────────────────── STATE TYPES ───────────────────────────── */
 interface DriftState {
   // Core
   driftClient: DriftClient | null;
@@ -67,55 +52,58 @@ interface DriftState {
   ) => Promise<void>;
 }
 
-/** ──────────────────────────── THE STORE ─────────────────────────────── */
 export const useDriftStore = create<DriftState>((set, get) => ({
-  // ───────────────────── DEFAULT STATE
   driftClient: null,
   user: null,
   walletAdapter: null,
   currentSubaccountId: 0,
-  currentMarketIndex: 0, // default to SOL‑PERP (market 0)
+  currentMarketIndex: 0, // default to SOL‑PERP (market index 0)
   markets: {},
   oraclePrices: {},
 
-  // ───────────────────── MUTATORS
   setSubaccountId: (id) => set({ currentSubaccountId: id }),
   setMarketIndex: (idx) => set({ currentMarketIndex: idx }),
 
-  // ───────────────────── CONNECTION / INIT
+  //initialize drift client
   initClient: async (walletAdapter) => {
     set({ walletAdapter });
 
-    const driftClient = await initializeDriftClient(walletAdapter);
-    set({ driftClient });
+    try {
+      const driftClient = await initializeDriftClient(walletAdapter);
+      set({ driftClient });
+      toast.success("Drift client initialized successfully");
 
-    // Load first market immediately so UI has data
-    await get().refreshMarket(0);
+      await get().refreshMarket(0);
 
-    // Load first sub‑account
-    await get().refreshUser();
+      await get().refreshUser();
 
-    // Poll for market updates every 5 seconds
-    const pollInterval = setInterval(async () => {
-      await get().refreshMarket(get().currentMarketIndex);
-    }, 5000);
+      const pollInterval = setInterval(async () => {
+        await get().refreshMarket(get().currentMarketIndex);
+      }, 5000);
 
-    // Clean up interval on disconnect
-    driftClient.eventEmitter.on("error", () => {
-      clearInterval(pollInterval);
-    });
+      driftClient.eventEmitter.on("error", () => {
+        clearInterval(pollInterval);
+        toast.error("Drift client connection error");
+      });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to initialize Drift client");
+    }
   },
 
-  // ───────────────────── USER REFRESH
+  //refresh user
   refreshUser: async () => {
     const { driftClient, currentSubaccountId } = get();
     if (!driftClient) throw new Error("DriftClient not initialised");
 
-    const user = await getUserSubaccount(driftClient, currentSubaccountId);
-    set({ user });
+    try {
+      const user = await getUserSubaccount(driftClient, currentSubaccountId);
+      set({ user });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to refresh user data");
+    }
   },
 
-  // ───────────────────── MARKET REFRESH
+  //refresh market
   refreshMarket: async (marketIndexParam) => {
     const marketIndex = marketIndexParam ?? get().currentMarketIndex ?? 0;
     const { driftClient } = get();
@@ -123,14 +111,8 @@ export const useDriftStore = create<DriftState>((set, get) => ({
 
     try {
       const acct = driftClient.getPerpMarketAccount(0);
-      console.log("acct", acct);
       const oracleData = driftClient.getOracleDataForPerpMarket(0);
-      console.log("oracleData", oracleData);
-      // const humanPrice = Number(
-      //   driftClient.convertToPricePrecision(oracleData.price)
-      // );
-      const humanPrice = Number(oracleData.price.toString()) / 1e6; // or 1e8, check your market's precision!
-      console.log("humanPrice", humanPrice);
+      const humanPrice = Number(oracleData.price.toString()) / 1e6;
 
       if (acct) {
         set((state) => ({
@@ -139,56 +121,84 @@ export const useDriftStore = create<DriftState>((set, get) => ({
           oraclePrices: { ...state.oraclePrices, [marketIndex]: humanPrice },
         }));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed refreshing market", err);
+      toast.error(err.message || "Failed to refresh market data");
     }
   },
 
-  // ───────────────────── SPOT TOOLS
+  //deposit
   deposit: async (amount) => {
     const { driftClient, currentMarketIndex, currentSubaccountId } = get();
     if (!driftClient) throw new Error("DriftClient not initialised");
 
-    await depositToUser(
-      driftClient,
-      amount,
-      currentMarketIndex,
-      currentSubaccountId
-    );
-    await get().refreshUser();
+    try {
+      await depositToUser(
+        driftClient,
+        amount,
+        currentMarketIndex,
+        currentSubaccountId
+      );
+      await get().refreshUser();
+    } catch (err: any) {
+      toast.error(err.message || "Deposit failed");
+      throw err;
+    }
   },
 
+  //withdraw
   withdraw: async (amount) => {
     const { driftClient, currentMarketIndex } = get();
     if (!driftClient) throw new Error("DriftClient not initialised");
 
-    await withdrawFromUser(driftClient, amount, currentMarketIndex);
-    await get().refreshUser();
+    try {
+      await withdrawFromUser(driftClient, amount, currentMarketIndex);
+      await get().refreshUser();
+    } catch (err: any) {
+      toast.error(err.message || "Withdrawal failed");
+      throw err;
+    }
   },
 
-  // ───────────────────── PERP ORDER HELPERS
+  //place auction market order
   placeAuctionMarketOrder: async (args) => {
     const { driftClient } = get();
     if (!driftClient) throw new Error("DriftClient not initialised");
 
-    await placeAuctionMarketPerpOrder({ ...args, driftClient });
-    console.log("placed auction market order");
-    await get().refreshUser();
+    try {
+      await placeAuctionMarketPerpOrder({ ...args, driftClient });
+      await get().refreshUser();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to place auction market order");
+      throw err;
+    }
   },
 
+  //place limit order
   placeLimitOrder: async (args) => {
     const { driftClient } = get();
     if (!driftClient) throw new Error("DriftClient not initialised");
 
-    await placeLimitPerpOrder({ ...args, driftClient });
-    await get().refreshUser();
+    try {
+      await placeLimitPerpOrder({ ...args, driftClient });
+      await get().refreshUser();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to place limit order");
+      throw err;
+    }
   },
 
+  //place oracle offset order
   placeOracleOffsetOrder: async (args) => {
     const { driftClient } = get();
     if (!driftClient) throw new Error("DriftClient not initialised");
 
-    await placeOracleOffsetPerpOrder({ ...args, driftClient });
-    await get().refreshUser();
+    try {
+      await placeOracleOffsetPerpOrder({ ...args, driftClient });
+      await get().refreshUser();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to place oracle offset order");
+      throw err;
+    }
   },
 }));

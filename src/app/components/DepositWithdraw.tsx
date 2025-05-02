@@ -1,7 +1,7 @@
 "use client";
-
 import { useState } from "react";
 import { useDriftStore } from "@/app/store/userdriftstore";
+import toast from "react-hot-toast";
 
 const marketOptions = [
   { label: "USDC", value: 0, decimals: 6, icon: "💵" },
@@ -28,7 +28,10 @@ export const DepositWithdrawForm = () => {
     e.preventDefault();
 
     const numericAmount = parseFloat(amount);
-    if (isNaN(numericAmount) || numericAmount <= 0) return;
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
 
     setLoading(true);
     setStoreMarketIndex(marketIndex);
@@ -36,12 +39,19 @@ export const DepositWithdrawForm = () => {
     try {
       if (mode === "deposit") {
         await deposit(numericAmount);
+        toast.success(
+          `Successfully deposited ${numericAmount} ${selectedMarket?.label}`
+        );
       } else {
         await withdraw(numericAmount);
+        toast.success(
+          `Successfully withdrew ${numericAmount} ${selectedMarket?.label}`
+        );
       }
       setAmount("");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Transaction failed:", err);
+      toast.error(err.message || "Transaction failed");
     } finally {
       setLoading(false);
     }

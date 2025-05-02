@@ -11,8 +11,7 @@ import { useDriftStore } from "@/app/store/userdriftstore";
 
 import "@solana/wallet-adapter-react-ui/styles.css";
 
-const RPC_ENDPOINT =
-  "https://devnet.helius-rpc.com/?api-key=1d4eba50-6775-455d-84a7-72675bb4995f";
+const RPC_ENDPOINT = `https://devnet.helius-rpc.com/?api-key=${process.env.NEXT_PUBLIC_HELIUS_API_KEY}`;
 export default function WalletContextProvider({
   children,
 }: {
@@ -31,7 +30,6 @@ export default function WalletContextProvider({
   );
 }
 
-// DRIFT INITIALIZER – Sets up Drift SDK using Zustand store and wrapped wallet
 function DriftInitializer({ children }: { children: ReactNode }) {
   const walletAdapter = useWallet(); // gets WalletContextState
   const { connected, publicKey, signTransaction } = walletAdapter;

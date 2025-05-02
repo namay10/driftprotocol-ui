@@ -8,6 +8,7 @@ import {
   QUOTE_PRECISION,
 } from "@drift-labs/sdk";
 import { PublicKey, Connection, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import toast from "react-hot-toast";
 
 export default function InputWalletData() {
   const { driftClient } = useDriftStore();
@@ -23,27 +24,24 @@ export default function InputWalletData() {
     setWalletData(null);
 
     try {
-      // Validate wallet address
       if (!walletAddress || walletAddress.length !== 44) {
-        throw new Error("Please enter a valid Solana wallet address");
+        toast.error("Please enter a valid Solana wallet address");
+        return;
       }
 
       const publicKey = new PublicKey(walletAddress);
       const connection = new Connection(
-        "https://devnet.helius-rpc.com/?api-key=1d4eba50-6775-455d-84a7-72675bb4995f"
+        `https://devnet.helius-rpc.com/?api-key=${process.env.NEXT_PUBLIC_HELIUS_API_KEY}`
       );
 
-      // Fetch Solana wallet data
       const balance = await connection.getBalance(publicKey);
       const solBalance = balance / LAMPORTS_PER_SOL;
 
-      // Initialize wallet data with Solana data
       const data = {
         solBalance,
         hasDriftData: false,
       };
 
-      // If Drift client is available, fetch Drift data
       if (driftClient) {
         try {
           const user = await driftClient.getUser(0, publicKey);
@@ -70,7 +68,6 @@ export default function InputWalletData() {
                 .getUserAccount()
                 .totalWithdraws.toNumber();
 
-              // Update data with Drift information
               Object.assign(data, {
                 hasDriftData: true,
                 driftSolBalance,
@@ -79,17 +76,24 @@ export default function InputWalletData() {
                 totalDeposits,
                 totalWithdraws,
               });
+              toast.success("Successfully fetched wallet data");
             }
+          } else {
+            toast.error("No Drift account found for this wallet", {
+              icon: "⚠️",
+            });
           }
         } catch (driftError) {
           console.warn("Failed to fetch Drift data:", driftError);
-          // Continue with just Solana data
+          toast.error("Could not fetch Drift data", { icon: "⚠️" });
         }
       }
 
       setWalletData(data);
     } catch (err: any) {
-      setError(err.message || "Failed to fetch wallet data");
+      const errorMessage = err.message || "Failed to fetch wallet data";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

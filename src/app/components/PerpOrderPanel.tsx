@@ -17,7 +17,6 @@ const ORDER_TYPE_LABELS = {
 };
 
 export default function PerpOrderPanel() {
-  /** ─────────────── Store hooks ─────────────── */
   const {
     currentMarketIndex,
     oraclePrices,
@@ -26,14 +25,12 @@ export default function PerpOrderPanel() {
     placeOracleOffsetOrder,
   } = useDriftStore();
 
-  /** ─────────────── Local state ─────────────── */
   const [orderType, setOrderType] = useState<number>(ORDER_TYPE.MARKET);
   const [direction, setDirection] = useState<PositionDirection>(
     PositionDirection.LONG
   );
-  const [size, setSize] = useState<string>(""); // human units
+  const [size, setSize] = useState<string>("");
 
-  /* Price state – varies per order type */
   const [limitPrice, setLimitPrice] = useState<string>("");
   const [auctionStart, setAuctionStart] = useState<string>("");
   const [auctionEnd, setAuctionEnd] = useState<string>("");
@@ -41,10 +38,8 @@ export default function PerpOrderPanel() {
   const [priceOffset, setPriceOffset] = useState<string>(""); // oracle offset
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  /** ─────────────── Derived helpers ─────────────── */
   const oraclePrice = oraclePrices[currentMarketIndex] ?? 0;
 
-  // When switching to LIMIT, pre‑fill with oraclePrice for convenience
   useEffect(() => {
     if (orderType === ORDER_TYPE.LIMIT) {
       setLimitPrice(oraclePrice.toString());
@@ -56,7 +51,6 @@ export default function PerpOrderPanel() {
     }
   }, [orderType, oraclePrice]);
 
-  /** ─────────────── Submit handler ─────────────── */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -135,7 +129,7 @@ export default function PerpOrderPanel() {
       }
 
       toast.success("✅ Order placed");
-      // reset size only, keep price handy for next order
+
       setSize("");
     } catch (err: any) {
       console.error("Order error:", err);
@@ -145,7 +139,6 @@ export default function PerpOrderPanel() {
     }
   };
 
-  /** ─────────────── UI elements ─────────────── */
   const inputClassName =
     "w-full bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all";
   const labelClassName = "block text-sm text-gray-400 mb-2";

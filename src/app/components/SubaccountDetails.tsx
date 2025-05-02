@@ -8,6 +8,7 @@ import {
   QUOTE_PRECISION,
   PRICE_PRECISION,
 } from "@drift-labs/sdk";
+import toast from "react-hot-toast";
 
 export default function SubaccountDetails() {
   const { driftClient, currentSubaccountId, setSubaccountId, refreshUser } =
@@ -68,8 +69,15 @@ export default function SubaccountDetails() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await refreshUser();
-    setRefreshing(false);
+    try {
+      await refreshUser();
+      toast.success("Subaccount data refreshed successfully");
+    } catch (err: any) {
+      console.error("Failed to refresh:", err);
+      toast.error(err.message || "Failed to refresh subaccount data");
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   if (subaccounts.length === 0) {

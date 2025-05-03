@@ -11,8 +11,13 @@ import {
 import toast from "react-hot-toast";
 
 export default function SubaccountDetails() {
-  const { driftClient, currentSubaccountId, setSubaccountId, refreshUser } =
-    useDriftStore();
+  const {
+    driftClient,
+    currentSubaccountId,
+    setSubaccountId,
+    refreshUser,
+    refreshMarket,
+  } = useDriftStore();
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -21,19 +26,19 @@ export default function SubaccountDetails() {
     return [...driftClient.users.values()].map(
       (u) => [Number(u.getUserAccount().subAccountId), u] as const
     );
-  }, [driftClient]);
+  }, [driftClient, refreshing]);
 
   const selectedSubUser = useMemo(() => {
     if (!driftClient) return undefined;
     return driftClient.getUser(currentSubaccountId);
-  }, [driftClient, currentSubaccountId]);
+  }, [driftClient, currentSubaccountId, refreshing]);
 
   const orders = useMemo(() => {
     if (!selectedSubUser) return [];
     return selectedSubUser
       .getUserAccount()
       .orders.filter((o) => o.orderId !== 0);
-  }, [selectedSubUser]);
+  }, [selectedSubUser, refreshing]);
 
   const priceUsd = useMemo(() => {
     if (!driftClient) return 0;
@@ -41,7 +46,7 @@ export default function SubaccountDetails() {
       driftClient.getOracleDataForSpotMarket(1).price.toNumber() /
       PRICE_PRECISION.toNumber()
     );
-  }, [driftClient]);
+  }, [driftClient, refreshing]);
 
   const solBalance = useMemo(() => {
     if (!selectedSubUser || !driftClient) return 0;
@@ -57,7 +62,7 @@ export default function SubaccountDetails() {
       SpotBalanceType.DEPOSIT
     );
     return lamports.toNumber() / LAMPORTS_PRECISION.toNumber();
-  }, [selectedSubUser, driftClient]);
+  }, [selectedSubUser, driftClient, refreshing]);
 
   const collateralUsd = useMemo(() => {
     if (!selectedSubUser) return 0;
@@ -65,12 +70,13 @@ export default function SubaccountDetails() {
       selectedSubUser.getTotalCollateral().toNumber() /
       QUOTE_PRECISION.toNumber()
     );
-  }, [selectedSubUser]);
+  }, [selectedSubUser, refreshing]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
       await refreshUser();
+      await refreshMarket(0);
       toast.success("Subaccount data refreshed successfully");
     } catch (err: any) {
       console.error("Failed to refresh:", err);

@@ -6,9 +6,7 @@ const CreateAccount: React.FC = () => {
   const { driftClient, currentSubaccountId, refreshUser, walletAdapter } =
     useDriftStore();
 
-  const [subaccountExists, setSubaccountExists] = useState<boolean | null>(
-    null
-  );
+  const [, setSubaccountExists] = useState<boolean | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,6 +17,7 @@ const CreateAccount: React.FC = () => {
       const exists = driftClient.hasUser(currentSubaccountId);
       setSubaccountExists(exists);
     } catch (e) {
+      console.error(e);
       setSubaccountExists(false);
     }
   }, [driftClient, currentSubaccountId]);

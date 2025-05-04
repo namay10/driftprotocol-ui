@@ -30,8 +30,10 @@ const CreateAccount: React.FC = () => {
 
     setLoading(true);
     setError(null);
+    console.log("currentSubaccountId", currentSubaccountId);
     try {
       // 1. Initialize subaccount
+      console.log("currentSubaccountId", currentSubaccountId);
       await driftClient.initializeUserAccount(
         currentSubaccountId,
         "subaccount"
@@ -42,6 +44,7 @@ const CreateAccount: React.FC = () => {
       setSubaccountExists(true);
     } catch (e: any) {
       setError(e.message || "Failed to initialize and deposit");
+      console.log("error", e);
     } finally {
       setLoading(false);
     }

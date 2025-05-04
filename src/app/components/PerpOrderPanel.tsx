@@ -44,12 +44,20 @@ export default function PerpOrderPanel() {
     if (orderType === ORDER_TYPE.LIMIT) {
       setLimitPrice(oraclePrice.toString());
     } else if (orderType === ORDER_TYPE.MARKET) {
-      // sensible defaults: ±0.1 range around oracle
-      setAuctionStart((oraclePrice * 0.995).toFixed(2));
-      setAuctionEnd((oraclePrice * 1.005).toFixed(2));
-      setAuctionFinal((oraclePrice * 1.01).toFixed(2));
+      // Adjust auction prices based on direction
+      if (direction === PositionDirection.LONG) {
+        // For long orders: start < end < final
+        setAuctionStart((oraclePrice * 0.995).toFixed(2));
+        setAuctionEnd((oraclePrice * 1.005).toFixed(2));
+        setAuctionFinal((oraclePrice * 1.01).toFixed(2));
+      } else {
+        // For short orders: start > end > final
+        setAuctionStart((oraclePrice * 1.005).toFixed(2));
+        setAuctionEnd((oraclePrice * 0.995).toFixed(2));
+        setAuctionFinal((oraclePrice * 0.99).toFixed(2));
+      }
     }
-  }, [orderType, oraclePrice]);
+  }, [orderType, oraclePrice, direction]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

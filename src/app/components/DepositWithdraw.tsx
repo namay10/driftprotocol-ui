@@ -6,7 +6,6 @@ import toast from "react-hot-toast";
 const marketOptions = [
   { label: "USDC", value: 0, decimals: 6, icon: "💵" },
   { label: "SOL", value: 1, decimals: 9, icon: "◎" },
-  { label: "JITO", value: 10, decimals: 6, icon: "🪙" },
 ];
 
 export const DepositWithdrawForm = () => {
